@@ -21,6 +21,7 @@ func main() {
 		CPUCollector{},
 		MemCollector{},
 		DiskCollector{},
+		NetCollector{},
 	}
 
 	payload := Payload{
