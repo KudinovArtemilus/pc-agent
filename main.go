@@ -14,18 +14,10 @@ type Payload struct {
 	Metrics []Metric `json:"metrics"`
 }
 
-func main() {
-	host, _ := os.Hostname()
-
-	collectors := []Collector{
-		CPUCollector{},
-		MemCollector{},
-		DiskCollector{},
-		NetCollector{},
-	}
-
+// collect опрашивает все сборщики и собирает одну посылку.
+func collect(name string, collectors []Collector) Payload {
 	payload := Payload{
-		Agent: host,
+		Agent: name,
 		TS:    time.Now().Format(time.RFC3339),
 	}
 
@@ -40,14 +32,46 @@ func main() {
 		}
 		payload.Metrics = append(payload.Metrics, metrics...)
 	}
+	return payload
+}
 
-	out, err := json.MarshalIndent(payload, "", "  ")
+func main() {
+	path, err := configPath()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "JSON:", err)
+		fmt.Fprintln(os.Stderr, "путь к конфигу:", err)
 		os.Exit(1)
 	}
-	fmt.Println(string(out))
-	if err := os.WriteFile("metrics.json", out, 0644); err != nil {
-		fmt.Fprintln(os.Stderr, "запись файла:", err)
+
+	cfg, err := loadConfig(path)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "конфиг:", err)
+		os.Exit(1)
+	}
+
+	if cfg.Name == "" {
+		cfg.Name, _ = os.Hostname()
+	}
+
+	fmt.Fprintf(os.Stderr, "агент %s | интервал %s | сервер %q\n",
+		cfg.Name, cfg.Interval, cfg.Server)
+
+	collectors := []Collector{
+		CPUCollector{},
+		MemCollector{},
+		DiskCollector{},
+		NetCollector{},
+	}
+
+	for {
+		payload := collect(cfg.Name, collectors)
+
+		out, err := json.MarshalIndent(payload, "", "  ")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "JSON:", err)
+		} else {
+			fmt.Println(string(out))
+		}
+
+		time.Sleep(cfg.Interval)
 	}
 }
