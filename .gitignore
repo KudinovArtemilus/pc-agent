@@ -7,3 +7,5 @@ agent.yaml
 # Настройки редакторов
 .vscode/
 .idea/
+
+*.json

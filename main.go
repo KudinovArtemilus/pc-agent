@@ -20,6 +20,7 @@ func main() {
 	collectors := []Collector{
 		CPUCollector{},
 		MemCollector{},
+		DiskCollector{},
 	}
 
 	payload := Payload{
@@ -32,6 +33,9 @@ func main() {
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "сборщик %s: %v\n", c.Name(), err)
 			continue
+		}
+		for i := range metrics {
+			metrics[i].Value = round1(metrics[i].Value)
 		}
 		payload.Metrics = append(payload.Metrics, metrics...)
 	}
